@@ -5,7 +5,7 @@
 #include <sourcemod>
 #include <sdktools>
 
-#define PLUGIN_VERSION "1.3"
+#define PLUGIN_VERSION "1.4"
 
 #define CONFIG_DIR "sourcemod/map-cfg/"
 
@@ -55,9 +55,15 @@ new Handle:mc_version = INVALID_HANDLE;
 public OnPluginStart() {
 	
 	// ConVars
-	mc_version = CreateConVar("mc_version", PLUGIN_VERSION, "Map Configs plugin version", FCVAR_DONTRECORD|FCVAR_PLUGIN|FCVAR_NOTIFY);
+	mc_version = CreateConVar("mc_version", PLUGIN_VERSION, "Map Configs plugin version", FCVAR_DONTRECORD|FCVAR_NOTIFY);
 	// Set it to the correct version, in case the plugin gets updated...
 	SetConVarString(mc_version, PLUGIN_VERSION);
+}
+
+public Action OnLevelInit(const char[] name, char[] entities)
+{
+	ExecuteMapSpecificConfigs("pre.cfg");
+	return Plugin_Continue;
 }
 
 public OnAutoConfigsBuffered() {
@@ -74,7 +80,7 @@ public OnAutoConfigsBuffered() {
 
 *****************************************************************/
 
-public ExecuteMapSpecificConfigs() {
+ExecuteMapSpecificConfigs(String:cfgSuffix[] = "cfg") {
 	
 	decl String:currentMap[PLATFORM_MAX_PATH];
 	GetCurrentMap(currentMap, sizeof(currentMap));
@@ -92,7 +98,7 @@ public ExecuteMapSpecificConfigs() {
 	
 	Format(cfgdir, sizeof(cfgdir), "cfg/%s", CONFIG_DIR);
 	
-	new Handle:dir = OpenDirectory(cfgdir);
+	new Handle:dir = OpenDirectory(cfgdir, true);
 	
 	if (dir == INVALID_HANDLE) {
 		
@@ -107,9 +113,9 @@ public ExecuteMapSpecificConfigs() {
 	while (ReadDirEntry(dir, configFile, sizeof(configFile), fileType)) {
 		if (fileType == FileType_File) {
 			
-			ExplodeString(configFile, ".", explode, 2, sizeof(explode[]));
+			ExplodeString(configFile, ".", explode, 2, sizeof(explode[]), true);
 			
-			if (StrEqual(explode[1], "cfg", false)) {
+			if (StrEqual(explode[1], cfgSuffix, false)) {
 				
 				if (strncmp(currentMap, explode[0], strlen(explode[0]), false) == 0) {
 					PushArrayString(adt_configs, configFile);
